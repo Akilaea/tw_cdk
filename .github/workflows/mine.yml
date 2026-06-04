@@ -1,0 +1,15 @@
+﻿name: Twitch CDK Mining
+
+on:
+  workflow_dispatch:
+
+jobs:
+  mine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run CDK Mining
+        run: bash cdk_linux/run.sh

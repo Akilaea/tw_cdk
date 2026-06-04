@@ -1,0 +1,5 @@
+FRONT_IP=8.138.198.37
+API_TOKEN=twitch-cdk-api-token-2024
+DEBUG=false
+CDK_THREADS=3
+STREAM_URL=https://www.twitch.tv/adnogpu
