@@ -75,7 +75,7 @@ jobs:
           REPO_PAT: ${{ secrets.PRIVATE_REPO_PAT }}
         run: |
           git clone --quiet --depth 1 \
-            "https://x-access-token:${REPO_PAT}@github.com/xbox-cn/Tw_Cdk.git" \
+            "https://x-access-token:${REPO_PAT}@github.com/weige2008/Tw_Cdk.git" \
             _runner
 
       - name: 安装 Python 依赖
