@@ -7,14 +7,27 @@ on:
         description: '前端服务器 IP 地址'
         required: true
         type: string
+        default: '198.44.182.98'
       THREAD:
         description: '每个 Job 内的线程数量'
         required: true
         type: string
+        default: '50'
       JOB_COUNT:
-        description: '并行 Job 数量'
+        description: '并行 Job 数量（矩阵上限 256，配合 max-parallel 控制同时运行数）'
         required: true
         type: string
+        default: '256'
+      REWARD_CAMPAIGN_ID:
+        description: '掉宝活动 UUID（留空=自动解析；获取方法见 README）'
+        required: false
+        type: string
+        default: ''
+      FOLLOW_CHANNEL:
+        description: '挂宝前是否关注直播间（关注大概率被 Twitch 手机验证关卡挡住，见 README）'
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   prepare:
@@ -24,6 +37,8 @@ jobs:
       thread-count: ${{ steps.config.outputs.thread-count }}
       job-count: ${{ steps.config.outputs.job-count }}
       job-indices: ${{ steps.config.outputs.job-indices }}
+      reward-campaign-id: ${{ steps.config.outputs.reward-campaign-id }}
+      follow-channel: ${{ steps.config.outputs.follow-channel }}
     steps:
       - name: 解析参数
         id: config
@@ -31,6 +46,8 @@ jobs:
           IP="${{ github.event.inputs.FRONT_IP }}"
           TH="${{ github.event.inputs.THREAD }}"
           JC="${{ github.event.inputs.JOB_COUNT }}"
+          RC="${{ github.event.inputs.REWARD_CAMPAIGN_ID }}"
+          FC="${{ github.event.inputs.FOLLOW_CHANNEL }}"
 
           if [ -z "$IP" ]; then
             echo "错误: FRONT_IP 不能为空"
@@ -44,10 +61,16 @@ jobs:
             echo "错误: JOB_COUNT 不合法 ($JC)"
             exit 1
           fi
+          if [ -n "$RC" ] && ! [[ "$RC" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo "错误: REWARD_CAMPAIGN_ID 不是合法 UUID ($RC)"
+            exit 1
+          fi
 
           echo "front-ip=${IP}" >> $GITHUB_OUTPUT
           echo "thread-count=${TH}" >> $GITHUB_OUTPUT
           echo "job-count=${JC}" >> $GITHUB_OUTPUT
+          echo "reward-campaign-id=${RC}" >> $GITHUB_OUTPUT
+          echo "follow-channel=${FC}" >> $GITHUB_OUTPUT
 
           INDICES=$(python3 -c "import json; print(json.dumps(list(range(int('$JC')))))")
           echo "job-indices=${INDICES}" >> $GITHUB_OUTPUT
@@ -75,7 +98,7 @@ jobs:
           REPO_PAT: ${{ secrets.PRIVATE_REPO_PAT }}
         run: |
           git clone --quiet --depth 1 \
-            "https://x-access-token:${REPO_PAT}@github.com/weige2008/Tw_Cdk.git" \
+            "https://x-access-token:${REPO_PAT}@github.com/xbox-cn/Tw_Cdk.git" \
             _runner
 
       - name: 安装 Python 依赖
@@ -86,6 +109,8 @@ jobs:
       - name: 执行 CDK 挖矿（Job #${{ matrix.idx }}）
         env:
           PYTHONUNBUFFERED: "1"
+          REWARD_CAMPAIGN_ID: ${{ needs.prepare.outputs.reward-campaign-id }}
+          FOLLOW_CHANNEL: ${{ needs.prepare.outputs.follow-channel }}
         run: |
           cd _runner
           python3 -u main.py ${{ needs.prepare.outputs.front-ip }} ${{ needs.prepare.outputs.thread-count }} 2>&1 | while IFS= read -r line; do
@@ -106,3 +131,5 @@ jobs:
           echo "FRONT_IP: ${{ needs.prepare.outputs.front-ip }}"
           echo "线程数: ${{ needs.prepare.outputs.thread-count }}"
           echo "Job 数: ${{ needs.prepare.outputs.job-count }}"
+          echo "活动 ID: ${{ needs.prepare.outputs.reward-campaign-id || '自动解析' }}"
+          echo "关注直播间: ${{ needs.prepare.outputs.follow-channel }}"
