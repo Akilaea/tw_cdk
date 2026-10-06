@@ -7,7 +7,7 @@ on:
         description: '前端服务器 IP 地址'
         required: true
         type: string
-        default: '198.44.182.98'
+        default: '198.44.182.19'
       THREAD:
         description: '每个 Job 内的线程数量'
         required: true
@@ -56,20 +56,24 @@ jobs:
           FC="${{ github.event.inputs.FOLLOW_CHANNEL }}"
           PN="${{ github.event.inputs.PREFER_NOSTOCK }}"
 
+          echo "收到输入: FRONT_IP=${IP} THREAD=${TH} JOB_COUNT=${JC} REWARD_CAMPAIGN_ID='${RC}' FOLLOW_CHANNEL=${FC} PREFER_NOSTOCK=${PN}"
+
           if [ -z "$IP" ]; then
             echo "错误: FRONT_IP 不能为空"
             exit 1
           fi
           if ! [[ "$TH" =~ ^[0-9]+$ ]] || [ "$TH" -lt 1 ]; then
-            echo "错误: THREAD 不合法 ($TH)"
+            echo "错误: THREAD 不合法 ($TH)（应为正整数，如 50）"
             exit 1
           fi
           if ! [[ "$JC" =~ ^[0-9]+$ ]] || [ "$JC" -lt 1 ]; then
-            echo "错误: JOB_COUNT 不合法 ($JC)"
+            echo "错误: JOB_COUNT 不合法 ($JC)（应为正整数，如 10）"
             exit 1
           fi
           if [ -n "$RC" ] && ! [[ "$RC" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
             echo "错误: REWARD_CAMPAIGN_ID 不是合法 UUID ($RC)"
+            echo "      这个字段留空即可——脚本会自己解析活动 ID；"
+            echo "      要固定活动时才填 36 位 UUID，例如 ef0b8279-7af5-4519-81a1-0233b2226ec5"
             exit 1
           fi
 
